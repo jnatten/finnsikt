@@ -35,6 +35,7 @@
       .place { font-size: 13px; color: var(--muted); margin-top: 6px; }
       .results { display: grid; gap: 4px; margin-top: 8px; }
       .results button { text-align: left; }
+      .error { color: #dc2626; }
       .warning { border: 1px solid #d97706; background: color-mix(in srgb, #d97706 12%, transparent); border-radius: 8px; padding: 12px 16px; }
       #status { position: fixed; bottom: 16px; right: 16px; color: var(--muted); font-size: 13px; }
     </style>
@@ -89,12 +90,17 @@
     <p class="hint">Lånebeløp = prisantydning (+ dokumentavgift) − egenkapital. Månedskostnad = terminbeløp + felleskostnader.</p>
 
     <h2>Fordeling</h2>
-    <div class="grid">
-      <label>Din andel (%)
-        <input id="splitPct" type="number" min="1" max="100" step="1" />
+    <p class="hint">Del månedskostnaden mellom flere. Andelene må til sammen bli 100 %, og hver andel vises ved siden av totalen. Med en makssum blir andelen rød med et varselikon når den er over, og oransje når den nærmer seg.</p>
+    <div id="splits"></div>
+    <div class="row" style="align-items: center">
+      <button id="add-split" type="button">+ Legg til andel</button>
+      <span id="split-sum" class="place" style="margin: 0"></span>
+    </div>
+    <div class="grid" style="margin-top: 16px">
+      <label>Oransje fra (% av maks)
+        <input id="nearMaxPct" type="number" min="1" max="100" step="1" />
       </label>
     </div>
-    <p class="hint">Under 100 % vises din andel ved siden av totalen.</p>
 
     <div id="status"></div>
     <script src="options.js"></script>

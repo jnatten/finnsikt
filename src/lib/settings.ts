@@ -26,11 +26,23 @@ export interface LoanSettings {
   taxDeduction: boolean;
 }
 
+export interface Split {
+  id: string;
+  label: string;
+  pct: number;
+  maxMonthly?: number;
+}
+
+export const splitTotal = (splits: Split[]) => splits.reduce((sum, split) => sum + split.pct, 0);
+
+export const splitsAddUp = (splits: Split[]) => splits.length > 0 && Math.abs(splitTotal(splits) - 100) < 0.01;
+
 export interface Settings {
   destinations: Destination[];
   arriveBy: string;
   loan: LoanSettings;
-  splitPct: number;
+  splits: Split[];
+  nearMaxPct: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,16 +57,30 @@ export const DEFAULT_SETTINGS: Settings = {
     includeDocumentFee: true,
     taxDeduction: false,
   },
-  splitPct: 100,
+  splits: [],
+  nearMaxPct: 90,
 };
 
 const KEY = "settings";
 
-function withDefaults(stored: Partial<Settings> | undefined): Settings {
+type StoredSettings = Partial<Settings> & { splitPct?: number };
+
+const legacySplits = (splitPct: number | undefined): Split[] =>
+  splitPct !== undefined && splitPct < 100
+    ? [
+        { id: "legacy-1", label: "", pct: splitPct },
+        { id: "legacy-2", label: "", pct: 100 - splitPct },
+      ]
+    : [];
+
+export function withDefaults(stored: StoredSettings | undefined): Settings {
+  const { splitPct, ...rest } = stored ?? {};
+  const defaults = structuredClone(DEFAULT_SETTINGS);
   return {
-    ...DEFAULT_SETTINGS,
-    ...stored,
-    loan: { ...DEFAULT_SETTINGS.loan, ...stored?.loan },
+    ...defaults,
+    splits: legacySplits(splitPct),
+    ...rest,
+    loan: { ...defaults.loan, ...rest.loan },
   };
 }
 

@@ -1,7 +1,12 @@
 const kr = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
+const pct = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 2 });
 
 export function formatKr(amount: number): string {
   return `${kr.format(Math.round(amount))} kr`;
+}
+
+export function formatPct(value: number): string {
+  return `${pct.format(value)} %`;
 }
 
 export function formatDuration(seconds: number): string {

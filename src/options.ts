@@ -1,13 +1,17 @@
 import { geocode } from "./lib/entur";
+import { formatPct } from "./lib/format";
 import {
   isRoutable,
   loadSettings,
   MODE_NAMES,
   MODES,
   saveSettings,
+  splitsAddUp,
+  splitTotal,
   type Destination,
   type LoanSettings,
   type Settings,
+  type Split,
 } from "./lib/settings";
 
 const HOST_PERMISSIONS = { origins: ["https://www.finn.no/*", "https://api.entur.io/*"] };
@@ -115,6 +119,66 @@ function renderDestinations(): void {
   $("destinations").replaceChildren(...settings.destinations.map(destinationEditor));
 }
 
+function labelled(text: string, input: HTMLElement): HTMLLabelElement {
+  const label = el("label", { textContent: text });
+  label.append(input);
+  return label;
+}
+
+function splitEditor(split: Split): HTMLElement {
+  const name = el("input", { type: "text", value: split.label, placeholder: "F.eks. Kari" });
+  name.addEventListener("input", () => {
+    split.label = name.value;
+    save();
+  });
+
+  const pct = el("input", { type: "number", min: "0", max: "100", step: "any", value: String(split.pct) });
+  pct.addEventListener("input", () => {
+    if (pct.value === "" || !pct.checkValidity()) return;
+    split.pct = pct.valueAsNumber;
+    renderSplitSum();
+    save();
+  });
+
+  const max = el("input", { type: "number", min: "0", step: "100", placeholder: "Ingen", value: String(split.maxMonthly ?? "") });
+  max.addEventListener("input", () => {
+    if (!max.checkValidity()) return;
+    split.maxMonthly = max.value === "" ? undefined : max.valueAsNumber;
+    save();
+  });
+
+  const remove = el("button", { type: "button", textContent: "Fjern" });
+  remove.addEventListener("click", () => {
+    settings.splits = settings.splits.filter((s) => s !== split);
+    save();
+    renderSplits();
+  });
+
+  const fieldset = el("fieldset");
+  const row = el("div", { className: "row" });
+  row.append(labelled("Navn", name), labelled("Andel (%)", pct), labelled("Maks (kr/mnd)", max), remove);
+  fieldset.append(row);
+  return fieldset;
+}
+
+function renderSplitSum(): void {
+  const sum = $("split-sum");
+  const total = splitTotal(settings.splits);
+  const valid = settings.splits.length === 0 || splitsAddUp(settings.splits);
+  sum.className = valid ? "place" : "place error";
+  sum.textContent =
+    settings.splits.length === 0
+      ? "Ingen fordeling – bare totalen vises."
+      : valid
+        ? `Sum: ${formatPct(total)}`
+        : `Sum: ${formatPct(total)} – må bli 100 % før fordelingen vises`;
+}
+
+function renderSplits(): void {
+  $("splits").replaceChildren(...settings.splits.map(splitEditor));
+  renderSplitSum();
+}
+
 function bindNumber(id: string, get: () => number, set: (value: number) => void): void {
   const input = $<HTMLInputElement>(id);
   input.value = String(get());
@@ -165,7 +229,14 @@ async function main(): Promise<void> {
   for (const key of ["equity", "interestPct", "years", "monthlyFee"] as const) {
     bindNumber(key, () => settings.loan[key], (value) => (settings.loan[key] = value));
   }
-  bindNumber("splitPct", () => settings.splitPct, (value) => (settings.splitPct = value));
+  bindNumber("nearMaxPct", () => settings.nearMaxPct, (value) => (settings.nearMaxPct = value));
+
+  renderSplits();
+  $("add-split").addEventListener("click", () => {
+    settings.splits.push({ id: crypto.randomUUID(), label: "", pct: Math.max(0, 100 - splitTotal(settings.splits)) });
+    save();
+    renderSplits();
+  });
   (["includeDocumentFee", "taxDeduction"] as const).forEach(bindCheckbox);
 
   const type = $<HTMLSelectElement>("type");

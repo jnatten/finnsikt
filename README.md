@@ -3,7 +3,7 @@
 Firefox/Zen extension that adds a panel to every listing in the finn.no real-estate search (`/realestate/*/search.html`):
 
 - **Travel times** from the listing to your own destinations by public transport, car, walking and bike, using [Entur](https://developer.entur.org/). Hover a time for details, such as the transit lines used.
-- **Monthly cost**: the loan payment plus fellesutgifter, with an optional split ("63 %: 26 699 kr/mnd") shown next to the total.
+- **Monthly cost**: the loan payment plus fellesutgifter, optionally split between several people ("Jonas 63 %: 26 699 kr · Kari 37 %: 15 680 kr"), each split shown next to the total.
 
 ## Setup
 
@@ -65,7 +65,9 @@ Click the toolbar icon to open the settings. If the extension asks for access to
 - **Lån**: egenkapital, interest rate, loan term, annuity or serial loan, termingebyr, and two optional adjustments:
   - add 2.5 % dokumentavgift to the loan for selveier listings
   - subtract the 22 % interest tax deduction
-- **Fordeling**: your share in percent. Below 100 %, your share is shown next to the total.
+- **Fordeling**: split the monthly cost between several people. Each split has a name, a percentage and an optional max per month. The splits must add up to 100 % before they are shown on the cards.
+  - Over its max, a split turns red with a warning icon. Hover it to see by how much.
+  - Close to its max, a split turns orange. "Oransje fra" sets what counts as close (default 90 % of the max).
 
 The loan is based on **prisantydning**, not totalpris. Totalpris includes fellesgjeld, which fellesutgifter already pays for:
 

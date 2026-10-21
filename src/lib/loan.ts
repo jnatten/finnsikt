@@ -1,11 +1,18 @@
-import type { LoanSettings } from "./settings";
+import type { LoanSettings, Split } from "./settings";
 
 export interface MonthlyCost {
   principal: number;
   loanMonthly: number;
   sharedCost: number;
   total: number;
-  share: number;
+}
+
+export type SplitStatus = "ok" | "near" | "over";
+
+export interface SplitCost {
+  split: Split;
+  amount: number;
+  status: SplitStatus;
 }
 
 const DOCUMENT_FEE_RATE = 0.025;
@@ -16,7 +23,6 @@ export function monthlyCost(
   sharedCost: number,
   ownerType: string | undefined,
   loan: LoanSettings,
-  splitPct: number,
 ): MonthlyCost {
   const isSelveier = ownerType?.trim().toLowerCase().startsWith("selveier") ?? false;
   const documentFee = loan.includeDocumentFee && isSelveier ? DOCUMENT_FEE_RATE * price : 0;
@@ -36,11 +42,14 @@ export function monthlyCost(
     payment + (principal > 0 ? loan.monthlyFee : 0) - (loan.taxDeduction ? TAX_DEDUCTION_RATE * interest : 0);
   const total = loanMonthly + sharedCost;
 
-  return {
-    principal,
-    loanMonthly,
-    sharedCost,
-    total,
-    share: (total * splitPct) / 100,
-  };
+  return { principal, loanMonthly, sharedCost, total };
+}
+
+export function splitCosts(total: number, splits: Split[], nearMaxPct: number): SplitCost[] {
+  return splits.map((split) => {
+    const amount = (total * split.pct) / 100;
+    const max = split.maxMonthly;
+    const status: SplitStatus = !max ? "ok" : amount > max ? "over" : amount >= (max * nearMaxPct) / 100 ? "near" : "ok";
+    return { split, amount, status };
+  });
 }

@@ -38,8 +38,44 @@
   white-space: nowrap;
 }
 
-.ff-share {
+.ff-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+
+.ff-split {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ff-split-ok {
   color: rgb(0, 99, 251);
+}
+
+.ff-split-near {
+  color: rgb(217, 119, 6);
+}
+
+.ff-split-over {
+  color: rgb(220, 38, 38);
+}
+
+.ff-split-over::after {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: rgb(220, 38, 38);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
 }
 
 .ff-muted {

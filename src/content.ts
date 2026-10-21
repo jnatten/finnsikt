@@ -1,9 +1,17 @@
 import type { Coordinates, TravelResult } from "./lib/entur";
 import { fetchListings, finnkode, listingFromCard, type Listing } from "./lib/finn-data";
-import { formatDuration, formatKr } from "./lib/format";
-import { monthlyCost } from "./lib/loan";
+import { formatDuration, formatKr, formatPct } from "./lib/format";
+import { monthlyCost, splitCosts, type SplitCost } from "./lib/loan";
 import { requestGeocode, requestOpenOptions, requestTravelTimes, type TravelTimes } from "./lib/messages";
-import { isRoutable, loadSettings, MODE_NAMES, onSettingsChanged, type Mode, type Settings } from "./lib/settings";
+import {
+  isRoutable,
+  loadSettings,
+  MODE_NAMES,
+  onSettingsChanged,
+  splitsAddUp,
+  type Mode,
+  type Settings,
+} from "./lib/settings";
 
 const MODE_ICONS: Record<Mode, string> = { transit: "🚆", car: "🚗", foot: "🚶", bicycle: "🚲" };
 
@@ -65,17 +73,27 @@ function renderCost(card: Card): void {
     cost.append(el("span", "ff-muted", "Månedskostnad: –"));
     return;
   }
-  const result = monthlyCost(listing.price, listing.sharedCost ?? 0, listing.ownerType, settings.loan, settings.splitPct);
+  const result = monthlyCost(listing.price, listing.sharedCost ?? 0, listing.ownerType, settings.loan);
   const from = listing.priceIsFrom ? "fra " : "";
-  const main = el("div");
+  const main = el("div", "ff-amounts");
   main.append(el("strong", undefined, `${from}${formatKr(result.total)}/mnd`));
-  if (settings.splitPct < 100) {
-    main.append(" · ", el("strong", "ff-share", `${settings.splitPct} %: ${from}${formatKr(result.share)}/mnd`));
+  if (splitsAddUp(settings.splits)) {
+    for (const cost of splitCosts(result.total, settings.splits, settings.nearMaxPct)) main.append(splitChip(cost, from));
   }
   const shared = listing.sharedCost === undefined ? "felleskost. ukjent" : `felles ${formatKr(result.sharedCost)}`;
   const breakdown = el("div", "ff-muted", `lån ${formatKr(result.loanMonthly)} + ${shared}`);
   cost.title = `Lånebeløp ${formatKr(result.principal)} (prisantydning ${from}${formatKr(listing.price)})`;
   cost.append(main, breakdown);
+}
+
+function splitChip({ split, amount, status }: SplitCost, from: string): HTMLElement {
+  const name = [split.label, formatPct(split.pct)].filter(Boolean).join(" ");
+  const chip = el("span", `ff-split ff-split-${status}`, `${name}: ${from}${formatKr(amount)}`);
+  if (split.maxMonthly) {
+    const difference = formatKr(Math.abs(amount - split.maxMonthly));
+    chip.title = `${difference} ${amount > split.maxMonthly ? "over" : "under"} maks (${formatKr(split.maxMonthly)}/mnd)`;
+  }
+  return chip;
 }
 
 function travelCell(mode: Mode, result: TravelResult | undefined): HTMLElement {
