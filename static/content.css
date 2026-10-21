@@ -12,6 +12,11 @@
   cursor: default;
 }
 
+.ff-panel-ad {
+  margin: 0 0 24px;
+  font-size: 15px;
+}
+
 .ff-travel {
   display: grid;
   gap: 2px;

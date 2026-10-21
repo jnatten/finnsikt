@@ -1,5 +1,13 @@
 import type { Coordinates, TravelResult } from "./lib/entur";
-import { fetchListings, finnkode, listingFromCard, type Listing } from "./lib/finn-data";
+import {
+  collectListings,
+  fetchPageData,
+  finnkode,
+  listingFromAd,
+  listingFromAdPage,
+  listingFromCard,
+  type Listing,
+} from "./lib/finn-data";
 import { formatDuration, formatKr, formatPct } from "./lib/format";
 import { monthlyCost, splitCosts, type SplitCost } from "./lib/loan";
 import { requestGeocode, requestOpenOptions, requestTravelTimes, type TravelTimes } from "./lib/messages";
@@ -26,8 +34,8 @@ const cards = new Map<HTMLElement, Card>();
 const enhancing = new WeakSet<HTMLElement>();
 const travelRequests = new Map<string, Promise<TravelTimes>>();
 let settings: Settings;
-let listingsUrl: string | undefined;
-let listings: Promise<Map<string, Listing>>;
+let pageDataUrl: string | undefined;
+let pageData: Promise<unknown>;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) {
   const element = document.createElement(tag);
@@ -36,15 +44,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   return element;
 }
 
-function currentListings(): Promise<Map<string, Listing>> {
-  if (location.href !== listingsUrl) {
-    listingsUrl = location.href;
-    listings = fetchListings(new URL(location.href)).catch((error) => {
-      console.warn("[finn-finder] could not load listing data, falling back to card text", error);
-      return new Map();
+function currentPageData(): Promise<unknown> {
+  if (location.href !== pageDataUrl) {
+    pageDataUrl = location.href;
+    pageData = fetchPageData(new URL(location.href)).catch((error) => {
+      console.warn("[finn-finder] could not load listing data, falling back to page text", error);
+      return undefined;
     });
   }
-  return listings;
+  return pageData;
 }
 
 async function coordinatesFor(listing: Listing): Promise<Coordinates> {
@@ -144,32 +152,54 @@ async function renderTravel(card: Card): Promise<void> {
   }
 }
 
-function enhance(article: HTMLElement, data: Map<string, Listing>): void {
-  const id = finnkode(article);
-  if (!id) return;
-  const listing = data.get(id) ?? listingFromCard(article, id);
-  const panel = el("div", "ff-panel col-span-2");
+const panelIn = (scope: ParentNode) => scope.querySelector<HTMLElement>(".ff-panel");
+
+function addPanel(host: HTMLElement, listing: Listing, className: string, insert: (panel: HTMLElement) => void): void {
+  const panel = el("div", `ff-panel ${className}`);
+  panel.dataset.finnkode = listing.id;
   const card: Card = { listing, travel: el("div", "ff-travel"), cost: el("div", "ff-cost"), travelRender: 0 };
   panel.append(card.travel, card.cost);
-  (article.querySelector("h2")?.parentElement ?? article).append(panel);
-  cards.set(article, card);
+  insert(panel);
+  cards.set(host, card);
   renderCost(card);
   void renderTravel(card);
 }
 
-async function scan(): Promise<void> {
-  for (const article of cards.keys()) if (!article.isConnected) cards.delete(article);
-  if (!location.pathname.endsWith("/search.html")) return;
+async function scanSearch(): Promise<void> {
   const articles = [...document.querySelectorAll<HTMLElement>("article.sf-search-ad")].filter(
-    (article) => !enhancing.has(article) && !article.querySelector(".ff-panel"),
+    (article) => !enhancing.has(article) && panelIn(article)?.dataset.finnkode !== finnkode(article),
   );
   if (!articles.length) return;
   for (const article of articles) enhancing.add(article);
-  const data = await currentListings();
+  const data = collectListings(await currentPageData());
   for (const article of articles) {
     enhancing.delete(article);
-    enhance(article, data);
+    const id = finnkode(article);
+    if (!id) continue;
+    panelIn(article)?.remove();
+    addPanel(article, data.get(id) ?? listingFromCard(article, id), "col-span-2", (panel) =>
+      (article.querySelector("h2")?.parentElement ?? article).append(panel),
+    );
   }
+}
+
+async function scanAd(): Promise<void> {
+  const id = new URL(location.href).searchParams.get("finnkode");
+  const anchor =
+    document.querySelector<HTMLElement>('[data-testid="pricing-incicative-price"]') ??
+    document.querySelector<HTMLElement>('[data-testid="object-title"]');
+  if (!id || !anchor || enhancing.has(anchor) || panelIn(document)?.dataset.finnkode === id) return;
+  enhancing.add(anchor);
+  const listing = listingFromAd(await currentPageData(), id) ?? listingFromAdPage(document, id);
+  enhancing.delete(anchor);
+  panelIn(document)?.remove();
+  addPanel(anchor, listing, "ff-panel-ad", (panel) => anchor.after(panel));
+}
+
+async function scan(): Promise<void> {
+  for (const host of cards.keys()) if (!host.isConnected) cards.delete(host);
+  if (location.pathname.endsWith("/search.html")) await scanSearch();
+  else if (location.pathname.endsWith("/ad.html")) await scanAd();
 }
 
 let scheduled: number | undefined;

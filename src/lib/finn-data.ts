@@ -59,10 +59,33 @@ export function collectListings(root: unknown): Map<string, Listing> {
   return listings;
 }
 
-export async function fetchListings(pageUrl: URL): Promise<Map<string, Listing>> {
+interface AdData {
+  price?: { suggestion?: number; total?: number };
+  sharedCost?: { amount?: number };
+  ownershipType?: string;
+  location?: { streetAddress?: string; postalName?: string; position?: { lat?: number; lng?: number } };
+}
+
+export function listingFromAd(root: unknown, id: string): Listing | undefined {
+  const routes = Object.values((root ?? {}) as Record<string, { data?: { objectData?: { ad?: AdData } } }>);
+  const ad = routes.map((route) => route?.data?.objectData?.ad).find(Boolean);
+  if (!ad) return undefined;
+  const { lat, lng } = ad.location?.position ?? {};
+  return {
+    id,
+    location: [ad.location?.streetAddress, ad.location?.postalName].filter(Boolean).join(", ") || undefined,
+    coordinates: typeof lat === "number" && typeof lng === "number" ? { lat, lon: lng } : undefined,
+    price: ad.price?.suggestion,
+    totalPrice: ad.price?.total,
+    sharedCost: ad.sharedCost?.amount,
+    ownerType: ad.ownershipType?.trim(),
+  };
+}
+
+export async function fetchPageData(pageUrl: URL): Promise<unknown> {
   const response = await fetch(`${pageUrl.origin}${pageUrl.pathname}.data${pageUrl.search}`);
   if (!response.ok) throw new Error(`finn.no: ${response.status}`);
-  return collectListings(decodeTurboStream(await response.text()));
+  return decodeTurboStream(await response.text());
 }
 
 const parseKr = (text: string | undefined): number | undefined => {
@@ -88,5 +111,17 @@ export function listingFromCard(card: Element, id: string): Listing {
     totalPrice: parseKr(text.match(/Totalpris:\s*([\d\s  ]+)kr/)?.[1]),
     sharedCost: parseKr(text.match(/Fellesutg\.:\s*([\d\s  ]+)kr/)?.[1]),
     ownerType: text.match(/\b(Selveier|Andel|Aksje|Obligasjon)\b/)?.[1],
+  };
+}
+
+export function listingFromAdPage(page: ParentNode, id: string): Listing {
+  const text = (selector: string) => page.querySelector(selector)?.textContent?.trim() || undefined;
+  return {
+    id,
+    location: text('[data-testid="object-address"]'),
+    price: parseKr(text('[data-testid="pricing-incicative-price"] span:last-child')),
+    totalPrice: parseKr(text('[data-testid="pricing-total-price"] dd')),
+    sharedCost: parseKr(text('[data-testid="pricing-common-monthly-cost"] dd')),
+    ownerType: text('[data-testid="info-ownership-type"] dd'),
   };
 }

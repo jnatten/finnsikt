@@ -1,6 +1,6 @@
 # Finn finder
 
-Firefox/Zen extension that adds a panel to every listing in the finn.no real-estate search (`/realestate/*/search.html`):
+Firefox/Zen extension that adds a panel to every listing in the finn.no real-estate search (`/realestate/*/search.html`) and to each ad page (`/realestate/*/ad.html`), right below the asking price:
 
 - **Travel times** from the listing to your own destinations by public transport, car, walking and bike, using [Entur](https://developer.entur.org/). Hover a time for details, such as the transit lines used.
 - **Monthly cost**: the loan payment plus fellesutgifter, optionally split between several people ("Jonas 63 %: 26 699 kr · Kari 37 %: 15 680 kr"), each split shown next to the total.
@@ -80,7 +80,10 @@ New-build projects that only list a price range use the lowest price, shown as "
 
 ## How it works
 
-- `src/content.ts` watches the search results and fetches the page's data from finn.no's own `…/search.html.data?<query>` endpoint. That data is React Router's turbo-stream format, decoded in `src/lib/turbo-stream.ts`, and gives each listing's coordinates and prices. It then adds a panel to each `article.sf-search-ad`. If the data can't be loaded, it reads prices from the card text and geocodes the address instead.
+- `src/content.ts` watches the page and fetches its data from finn.no's own `.data` endpoint (`…/search.html.data?<query>` or `…/ad.html.data?finnkode=…`). That data is React Router's turbo-stream format, decoded in `src/lib/turbo-stream.ts`, and gives the coordinates and prices.
+  - On the search page it adds a panel to each `article.sf-search-ad`.
+  - On an ad page it adds one panel after the asking price (`[data-testid="pricing-incicative-price"]`).
+  - If the data can't be loaded, it reads the prices from the page text and geocodes the address instead.
 - `src/background.ts` asks Entur's journey planner for all destinations and modes of a listing in one GraphQL request, with at most 3 requests running at once. Results are cached in `storage.local` for 14 days.
 - Settings live in `storage.sync`, and open finn.no tabs update right away when they change.
 
