@@ -15,6 +15,7 @@ import {
   isRoutable,
   loadSettings,
   MODE_NAMES,
+  MODES,
   onSettingsChanged,
   splitsAddUp,
   type Mode,
@@ -104,15 +105,15 @@ function splitChip({ split, amount, status }: SplitCost, from: string): HTMLElem
   return chip;
 }
 
-function travelCell(mode: Mode, result: TravelResult | undefined): HTMLElement {
-  const cell = el("span", "ff-time");
+function travelCell(mode: Mode, result: TravelResult | undefined): HTMLTableCellElement {
+  const cell = el("td");
   if (!result) {
-    cell.textContent = `${MODE_ICONS[mode]} …`;
+    cell.textContent = "…";
   } else if ("error" in result) {
-    cell.textContent = `${MODE_ICONS[mode]} –`;
+    cell.textContent = "–";
     cell.title = `${MODE_NAMES[mode]}: ${result.error}`;
   } else {
-    cell.textContent = `${MODE_ICONS[mode]} ${formatDuration(result.seconds)}`;
+    cell.textContent = formatDuration(result.seconds);
     cell.title = [MODE_NAMES[mode], result.summary].filter(Boolean).join(": ");
   }
   return cell;
@@ -128,16 +129,28 @@ function drawTravel(card: Card, times: TravelTimes | undefined, error?: string):
     card.travel.append(button);
     return;
   }
-  for (const destination of destinations) {
-    const row = el("div", "ff-row");
-    row.append(el("span", "ff-label", destination.label || destination.address));
-    const cells = el("span", "ff-times");
-    for (const mode of destination.modes) {
-      cells.append(travelCell(mode, error ? { error } : times?.[destination.id]?.[mode]));
-    }
-    row.append(cells);
-    card.travel.append(row);
+  const modes = MODES.filter((mode) => destinations.some((destination) => destination.modes.includes(mode)));
+  const table = el("table", "ff-table");
+  const header = table.createTHead().insertRow();
+  header.append(el("td"));
+  for (const mode of modes) {
+    const icon = el("th", undefined, MODE_ICONS[mode]);
+    icon.scope = "col";
+    icon.title = MODE_NAMES[mode];
+    header.append(icon);
   }
+  const body = table.createTBody();
+  for (const destination of destinations) {
+    const row = body.insertRow();
+    const name = el("th", undefined, destination.label || destination.address);
+    name.scope = "row";
+    row.append(name);
+    for (const mode of modes) {
+      const result = error ? { error } : times?.[destination.id]?.[mode];
+      row.append(destination.modes.includes(mode) ? travelCell(mode, result) : el("td"));
+    }
+  }
+  card.travel.append(table);
 }
 
 async function renderTravel(card: Card): Promise<void> {
