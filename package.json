@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=26.12.0"
+  },
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
@@ -15,19 +19,15 @@
     "addon:twilight": "pnpm package && open -a /Applications/Twilight.app web-ext-artifacts/finnsikt.xpi",
     "lint": "tsc --noEmit && web-ext lint --source-dir dist",
     "test": "vitest run",
-    "sign": "node build.mjs && web-ext sign --source-dir dist --channel unlisted"
+    "source": "mkdir -p web-ext-artifacts && rm -f web-ext-artifacts/finnsikt-source.zip && jj file list | zip -q web-ext-artifacts/finnsikt-source.zip -@",
+    "sign": "node build.mjs && pnpm source && web-ext sign --source-dir dist --channel listed --amo-metadata amo-metadata.json --upload-source-code web-ext-artifacts/finnsikt-source.zip"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^143.0.1",
-    "@types/node": "^22.20.5",
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5",
     "web-ext": "^10.8.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }

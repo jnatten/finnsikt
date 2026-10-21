@@ -2,7 +2,7 @@ import type { Mode } from "./settings";
 
 const JOURNEY_PLANNER = "https://api.entur.io/journey-planner/v3/graphql";
 const GEOCODER = "https://api.entur.io/geocoder/v1/autocomplete";
-const HEADERS = { "ET-Client-Name": "finnsikt-browserextension" };
+const HEADERS = { "ET-Client-Name": "natten-finnsikt" };
 const TRIPS_PER_REQUEST = 6;
 
 export interface Coordinates {

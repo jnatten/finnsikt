@@ -15,12 +15,17 @@ On an ad page, below the asking price:
 
 ## Setup
 
+Node.js and pnpm versions are pinned in `mise.toml`. With [mise](https://mise.jdx.dev) installed:
+
 ```sh
+mise install      # Node 26.12.0 and pnpm 12.14.0
 pnpm install
 pnpm build        # → dist/
 pnpm test         # unit tests
 pnpm lint         # typecheck + web-ext lint
 ```
+
+Without mise, install Node 26.12.0 and run `npm install -g pnpm@12.14.0` first.
 
 ### Run during development
 
@@ -58,11 +63,7 @@ A temporary add-on is removed when the browser restarts, but its settings are ke
 
 If the `addon:` scripts can't open the browser, run `pnpm package` and install the `.xpi` from `about:addons` → ⚙ → *Install Add-on From File…*.
 
-Regular Firefox release builds ignore that pref. There, sign the extension as an unlisted (self-distributed) add-on with your [AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/):
-
-```sh
-WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... pnpm sign
-```
+Regular Firefox release builds ignore that pref, so they need the version published on addons.mozilla.org.
 
 ## Settings
 
@@ -98,3 +99,33 @@ New-build projects that only list a price range use the lowest price, shown as "
 - Settings live in `storage.sync`, and open finn.no tabs update right away when they change.
 
 The extension depends on finn.no's internal data endpoint and CSS class names, so a finn.no redesign may break it.
+
+## Publishing to addons.mozilla.org
+
+The listing text, category, license and reviewer notes are in `amo-metadata.json`. The privacy policy is in [PRIVACY.md](PRIVACY.md).
+
+1. Bump `version` in `static/manifest.json`. Every upload needs a new version.
+2. Run `pnpm sign` with your [AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/):
+
+   ```sh
+   WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... pnpm sign
+   ```
+
+   This builds `dist/`, zips the source code with `pnpm source` (every file jj tracks), and submits both to the listed channel.
+3. The first time, finish the listing in the AMO Developer Hub: paste `PRIVACY.md` into the privacy policy field, and add a support email or website. The API can't set those.
+
+Because the code is bundled with esbuild, AMO reviewers rebuild it from the source zip and compare the result with the submitted package. They follow the build steps under [Setup](#setup), which `amo-metadata.json` repeats for them.
+
+### Building for review
+
+```sh
+mise install
+pnpm install --frozen-lockfile
+pnpm build
+```
+
+The extension is then in `dist/`. Node 26.12.0 and pnpm 12.14.0 are required; both are pinned in `mise.toml`, and pnpm also in `package.json`.
+
+## License
+
+[MIT](LICENSE)
