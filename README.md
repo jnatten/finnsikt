@@ -3,7 +3,15 @@
 Firefox/Zen extension that adds a panel to every listing in the finn.no real-estate search (`/realestate/*/search.html`) and to each ad page (`/realestate/*/ad.html`), right below the asking price:
 
 - **Travel times** from the listing to your own destinations by public transport, car, walking and bike, using [Entur](https://developer.entur.org/). Hover a time for details, such as the transit lines used.
-- **Monthly cost**: the loan payment plus fellesutgifter, optionally split between several people ("Jonas 63 %: 26 699 kr · Kari 37 %: 15 680 kr"), each split shown next to the total.
+- **Monthly cost**: the loan payment plus fellesutgifter, optionally split between several people ("Meg 63 %: 26 699 kr · Partner 37 %: 15 680 kr"), each split shown next to the total.
+
+On a search result card, where "Meg" is over their max and "Partner" is close to it:
+
+<img src="docs/screenshots/search.png" width="641" alt="A finn.no search result card with the Finn Finder panel showing travel times to Jobb and Fornebu, a total of 42 379 kr per month, Meg's 63 % share in red with a warning icon, and Partner's 37 % share in orange">
+
+On an ad page, below the asking price:
+
+<img src="docs/screenshots/ad.png" width="652" alt="The price section of a finn.no ad with the Finn Finder panel between the asking price and the Totalpris details">
 
 ## Setup
 
@@ -59,6 +67,8 @@ WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... pnpm sign
 ## Settings
 
 Click the toolbar icon to open the settings. If the extension asks for access to finn.no and api.entur.io, click **Gi tilgang**.
+
+<img src="docs/screenshots/options.png" width="540" alt="The Finn Finder settings page with two destinations, loan settings, and a split between Meg (63 %, max 25 000 kr) and Partner (37 %, max 16 500 kr)">
 
 - **Reisemål**: search for an address and pick a result, then choose which travel modes to show. Pick a street address where you can: stations and car-free squares often have no car route.
 - **Reisetidspunkt**: public transport times are for arriving by this time on the next weekday. Car, walk and bike times assume no traffic.
