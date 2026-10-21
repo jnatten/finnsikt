@@ -48,7 +48,7 @@ function currentPageData(): Promise<unknown> {
   if (location.href !== pageDataUrl) {
     pageDataUrl = location.href;
     pageData = fetchPageData(new URL(location.href)).catch((error) => {
-      console.warn("[finn-finder] could not load listing data, falling back to page text", error);
+      console.warn("[finnsikt] could not load listing data, falling back to page text", error);
       return undefined;
     });
   }
