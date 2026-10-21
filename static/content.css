@@ -1,0 +1,58 @@
+.ff-panel {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 99, 251, 0.07);
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: default;
+}
+
+.ff-travel {
+  display: grid;
+  gap: 2px;
+}
+
+.ff-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.ff-label {
+  min-width: 90px;
+  font-weight: 600;
+}
+
+.ff-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.ff-time {
+  white-space: nowrap;
+}
+
+.ff-share {
+  color: rgb(0, 99, 251);
+}
+
+.ff-muted {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.ff-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(0, 99, 251);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

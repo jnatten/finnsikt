@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <title>Finn Finder – innstillinger</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --accent: rgb(0, 99, 251);
+        --border: color-mix(in srgb, currentColor 20%, transparent);
+        --muted: color-mix(in srgb, currentColor 65%, transparent);
+      }
+      body {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 0 16px;
+        font: 15px/1.5 system-ui, sans-serif;
+      }
+      h1 { font-size: 24px; margin-bottom: 4px; }
+      h2 { font-size: 18px; margin: 32px 0 8px; }
+      p.hint { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+      fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 0 0 12px; }
+      label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+      label.inline { flex-direction: row; align-items: center; gap: 6px; }
+      input, select, button { font: inherit; }
+      input[type="text"], input[type="number"], input[type="time"], select {
+        padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit;
+      }
+      button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: inherit; cursor: pointer; }
+      button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+      .row { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+      .row > label { flex: 1 1 200px; }
+      .modes { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0; }
+      .place { font-size: 13px; color: var(--muted); margin-top: 6px; }
+      .results { display: grid; gap: 4px; margin-top: 8px; }
+      .results button { text-align: left; }
+      .warning { border: 1px solid #d97706; background: color-mix(in srgb, #d97706 12%, transparent); border-radius: 8px; padding: 12px 16px; }
+      #status { position: fixed; bottom: 16px; right: 16px; color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Finn Finder</h1>
+    <p class="hint">Reisetider (Entur) og månedskostnad for boliger i søkeresultatene på finn.no.</p>
+
+    <div id="permissions" class="warning" hidden>
+      <p>Utvidelsen trenger tilgang til finn.no og api.entur.io.</p>
+      <button id="grant" class="primary" type="button">Gi tilgang</button>
+    </div>
+
+    <h2>Reisemål</h2>
+    <p class="hint">Søk opp en adresse og velg et treff. Reisetid beregnes fra boligen til hvert reisemål. Velg helst en gateadresse – stasjoner og bilfrie plasser gir ofte ingen bilrute.</p>
+    <div id="destinations"></div>
+    <button id="add-destination" type="button">+ Legg til reisemål</button>
+
+    <h2>Reisetidspunkt</h2>
+    <div class="grid">
+      <label>Ankomst neste hverdag kl.
+        <input id="arriveBy" type="time" />
+      </label>
+    </div>
+    <p class="hint">Gjelder kollektivtrafikk. Bil, gange og sykkel beregnes uten trafikk.</p>
+
+    <h2>Lån</h2>
+    <div class="grid">
+      <label>Egenkapital (kr)
+        <input id="equity" type="number" min="0" step="10000" />
+      </label>
+      <label>Nominell rente (%)
+        <input id="interestPct" type="number" min="0" step="0.01" />
+      </label>
+      <label>Nedbetalingstid (år)
+        <input id="years" type="number" min="1" max="50" step="1" />
+      </label>
+      <label>Lånetype
+        <select id="type">
+          <option value="annuity">Annuitetslån</option>
+          <option value="serial">Serielån (første måned)</option>
+        </select>
+      </label>
+      <label>Termingebyr (kr/mnd)
+        <input id="monthlyFee" type="number" min="0" step="1" />
+      </label>
+    </div>
+    <div class="modes">
+      <label class="inline"><input id="includeDocumentFee" type="checkbox" /> Legg dokumentavgift (2,5 %) til lånet for selveier</label>
+      <label class="inline"><input id="taxDeduction" type="checkbox" /> Trekk fra rentefradrag (22 %)</label>
+    </div>
+    <p class="hint">Lånebeløp = prisantydning (+ dokumentavgift) − egenkapital. Månedskostnad = terminbeløp + felleskostnader.</p>
+
+    <h2>Fordeling</h2>
+    <div class="grid">
+      <label>Din andel (%)
+        <input id="splitPct" type="number" min="1" max="100" step="1" />
+      </label>
+    </div>
+    <p class="hint">Under 100 % vises din andel ved siden av totalen.</p>
+
+    <div id="status"></div>
+    <script src="options.js"></script>
+  </body>
+</html>
