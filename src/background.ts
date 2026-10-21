@@ -69,8 +69,8 @@ browser.runtime.onMessage.addListener((message: Message) => {
 
 browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
 
-browser.runtime.onInstalled.addListener(({ reason }) => {
-  if (reason === "install") browser.runtime.openOptionsPage();
+browser.runtime.onInstalled.addListener(async ({ reason }) => {
+  if (reason === "install" && !(await loadSettings()).destinations.length) await browser.runtime.openOptionsPage();
 });
 
 browser.runtime.onStartup.addListener(() => cachePrune());

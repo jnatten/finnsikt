@@ -20,19 +20,41 @@ pnpm lint         # typecheck + web-ext lint
 pnpm dev
 ```
 
-This rebuilds on change and starts Zen with the extension loaded as a temporary add-on, opened on a finn.no search. To use Firefox instead, set `FIREFOX_BIN=/Applications/Firefox.app/Contents/MacOS/firefox`.
+This rebuilds on change and starts Zen in a fresh, temporary profile with the extension loaded as a temporary add-on, opened on a finn.no search.
 
-You can also load `dist/manifest.json` as a temporary add-on from `about:debugging#/runtime/this-firefox`.
+| Script | Browser | Profile |
+| --- | --- | --- |
+| `pnpm dev` | Zen | new temporary profile each run |
+| `pnpm dev:persist` | Zen | `.web-ext-profile/zen`, kept between runs |
+| `pnpm dev:twilight` | Zen Twilight (nightly) | new temporary profile each run |
+| `pnpm dev:twilight:persist` | Zen Twilight | `.web-ext-profile/twilight`, kept between runs |
 
-### Install permanently
+The `:persist` variants keep your extension settings, the travel-time cache, finn.no logins and everything else between runs. Delete the folder to start over. For Firefox, run `node build.mjs --watch --run --browser=firefox` (add `--persist` to keep the profile).
 
-Firefox and Zen only keep signed extensions installed. Sign it as an unlisted (self-distributed) add-on with your [AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/):
+### Use it in your everyday browser
+
+The scripts above can't attach to a browser that is already running, so they always start a separate profile. To use the extension in the Zen or Zen Twilight you normally use:
+
+1. Once: open `about:config` and set `xpinstall.signatures.required` to `false`. This lets the browser install the unsigned extension.
+2. Run `pnpm addon:zen` or `pnpm addon:twilight`. This builds `web-ext-artifacts/finn-finder.xpi` and opens it in that browser, which asks you to add the extension.
+
+After changing the code, run the same command again to install over the old version. Your settings and cache are kept.
+
+For quicker iteration you can load it temporarily instead:
+
+1. Run `pnpm watch`.
+2. Open `about:debugging#/runtime/this-firefox`, click *Load Temporary Add-on…* and pick `dist/manifest.json`.
+3. Click *Reload* there after each change.
+
+A temporary add-on is removed when the browser restarts, but its settings are kept for the next time you load it.
+
+If the `addon:` scripts can't open the browser, run `pnpm package` and install the `.xpi` from `about:addons` → ⚙ → *Install Add-on From File…*.
+
+Regular Firefox release builds ignore that pref. There, sign the extension as an unlisted (self-distributed) add-on with your [AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/):
 
 ```sh
 WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... pnpm sign
 ```
-
-Then install the `.xpi` from `web-ext-artifacts/` via `about:addons` → ⚙ → *Install Add-on From File…*.
 
 ## Settings
 

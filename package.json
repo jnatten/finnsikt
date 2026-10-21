@@ -7,6 +7,12 @@
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
     "dev": "node build.mjs --watch --run",
+    "dev:persist": "node build.mjs --watch --run --persist",
+    "dev:twilight": "node build.mjs --watch --run --browser=twilight",
+    "dev:twilight:persist": "node build.mjs --watch --run --browser=twilight --persist",
+    "package": "node build.mjs && web-ext build --source-dir dist --overwrite-dest --filename finn-finder.xpi",
+    "addon:zen": "pnpm package && open -a /Applications/Zen.app web-ext-artifacts/finn-finder.xpi",
+    "addon:twilight": "pnpm package && open -a /Applications/Twilight.app web-ext-artifacts/finn-finder.xpi",
     "lint": "tsc --noEmit && web-ext lint --source-dir dist",
     "test": "vitest run",
     "sign": "node build.mjs && web-ext sign --source-dir dist --channel unlisted"
