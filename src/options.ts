@@ -8,6 +8,8 @@ import {
   saveSettings,
   splitsAddUp,
   splitTotal,
+  VERTICAL_NAMES,
+  VERTICALS,
   type Destination,
   type LoanSettings,
   type Settings,
@@ -111,7 +113,20 @@ function destinationEditor(destination: Destination): HTMLElement {
     modes.append(modeLabel);
   }
 
-  fieldset.append(row, place, results, modes);
+  const showOn = el("div", { className: "modes" });
+  showOn.append(el("span", { className: "show-on", textContent: "Vis på:" }));
+  for (const vertical of VERTICALS) {
+    const checkbox = el("input", { type: "checkbox", checked: destination.showOn.includes(vertical) });
+    checkbox.addEventListener("change", () => {
+      destination.showOn = VERTICALS.filter((v) => (v === vertical ? checkbox.checked : destination.showOn.includes(v)));
+      save();
+    });
+    const verticalLabel = el("label", { className: "inline" });
+    verticalLabel.append(checkbox, VERTICAL_NAMES[vertical]);
+    showOn.append(verticalLabel);
+  }
+
+  fieldset.append(row, place, results, modes, showOn);
   return fieldset;
 }
 
@@ -213,6 +228,7 @@ async function main(): Promise<void> {
       label: "",
       address: "",
       modes: ["transit", "car", "foot"],
+      showOn: [...VERTICALS],
     });
     save();
     renderDestinations();

@@ -13,14 +13,14 @@ Finnsikt has no server of its own and collects no analytics. The developer recei
 
 **Entur** (`api.entur.io`), Norway's public journey-planning service, receives:
 
-- the coordinates of the homes shown on the finn.no page you are viewing,
+- the coordinates of the homes and jobs shown on the finn.no page you are viewing,
 - the coordinates of your destinations and the arrival time you chose, to calculate the travel times,
 - the text you type when you search for a destination address in the settings,
 - the address of a listing, but only when finn.no's page data has no coordinates for it.
 
 Entur handles these requests under its own privacy policy, published on entur.no.
 
-**finn.no** receives a request for the data behind the page you are already viewing (the same `.data` request finn.no's own site makes when you navigate). It is sent with your normal finn.no cookies, like any other request to the site.
+**finn.no** receives a request for the data behind the page you are already viewing (the same `.data` request finn.no's own site makes when you navigate, or on the job search the same search request the page makes itself). It is sent with your normal finn.no cookies, like any other request to the site.
 
 Nothing else is sent anywhere.
 
@@ -43,14 +43,14 @@ Finnsikt har ingen egen server og samler ingen statistikk. Utvikleren mottar ing
 
 **Entur** (`api.entur.io`), den offentlige reiseplanleggeren i Norge, mottar:
 
-- koordinatene til boligene som vises på finn.no-siden du ser på,
+- koordinatene til boligene og stillingene som vises på finn.no-siden du ser på,
 - koordinatene til reisemålene dine og ankomsttiden du har valgt, for å beregne reisetidene,
 - teksten du skriver når du søker opp en adresse i innstillingene,
 - adressen til en annonse, men bare når finn.no-dataene mangler koordinater for den.
 
 Entur behandler forespørslene etter sin egen personvernerklæring på entur.no.
 
-**finn.no** mottar en forespørsel om dataene bak siden du allerede ser på (den samme `.data`-forespørselen finn.no sine egne sider gjør når du navigerer). Den sendes med de vanlige finn.no-informasjonskapslene dine, som alle andre forespørsler til nettstedet.
+**finn.no** mottar en forespørsel om dataene bak siden du allerede ser på (den samme `.data`-forespørselen finn.no sine egne sider gjør når du navigerer, eller i stillingssøket det samme søket siden selv gjør). Den sendes med de vanlige finn.no-informasjonskapslene dine, som alle andre forespørsler til nettstedet.
 
 Ingenting annet sendes noe sted.
 

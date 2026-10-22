@@ -16,6 +16,7 @@ export interface Place extends Coordinates {
 
 export interface TravelQuery {
   key: string;
+  from: Coordinates;
   to: Coordinates;
   mode: Mode;
 }
@@ -69,13 +70,13 @@ export function nextWeekdayAt(time: string, now = new Date()): Date {
 
 const place = ({ lat, lon }: Coordinates) => `{coordinates: {latitude: ${lat}, longitude: ${lon}}}`;
 
-function tripField(alias: string, from: Coordinates, query: TravelQuery, arriveBy: Date): string {
+function tripField(alias: string, query: TravelQuery, arriveBy: Date): string {
   const selection = "{ tripPatterns { duration legs { mode duration line { publicCode } } } routingErrors { code description } }";
   const args =
     query.mode === "transit"
       ? `dateTime: ${JSON.stringify(arriveBy.toISOString())}, arriveBy: true, numTripPatterns: 3`
       : `modes: {directMode: ${query.mode}, transportModes: []}, numTripPatterns: 1`;
-  return `${alias}: trip(from: ${place(from)}, to: ${place(query.to)}, ${args}) ${selection}`;
+  return `${alias}: trip(from: ${place(query.from)}, to: ${place(query.to)}, ${args}) ${selection}`;
 }
 
 function summarize(legs: Leg[]): string {
@@ -107,12 +108,8 @@ function toResult(trip: Trip | null, mode: Mode): TravelResult {
   return { seconds: best.duration };
 }
 
-async function requestTrips(
-  from: Coordinates,
-  queries: TravelQuery[],
-  arriveBy: Date,
-): Promise<Record<string, TravelResult>> {
-  const fields = queries.map((query, i) => tripField(`q${i}`, from, query, arriveBy));
+async function requestTrips(queries: TravelQuery[], arriveBy: Date): Promise<Record<string, TravelResult>> {
+  const fields = queries.map((query, i) => tripField(`q${i}`, query, arriveBy));
   const response = await fetch(JOURNEY_PLANNER, {
     method: "POST",
     headers: { ...HEADERS, "Content-Type": "application/json" },
@@ -124,13 +121,9 @@ async function requestTrips(
   return Object.fromEntries(queries.map((query, i) => [query.key, toResult(body.data![`q${i}`], query.mode)]));
 }
 
-export async function travelTimes(
-  from: Coordinates,
-  queries: TravelQuery[],
-  arriveBy: Date,
-): Promise<Record<string, TravelResult>> {
+export async function travelTimes(queries: TravelQuery[], arriveBy: Date): Promise<Record<string, TravelResult>> {
   const chunks: TravelQuery[][] = [];
   for (let i = 0; i < queries.length; i += TRIPS_PER_REQUEST) chunks.push(queries.slice(i, i + TRIPS_PER_REQUEST));
-  const results = await Promise.all(chunks.map((chunk) => requestTrips(from, chunk, arriveBy)));
+  const results = await Promise.all(chunks.map((chunk) => requestTrips(chunk, arriveBy)));
   return Object.assign({}, ...results);
 }

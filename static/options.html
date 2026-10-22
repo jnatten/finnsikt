@@ -33,6 +33,7 @@
       .row > label { flex: 1 1 200px; }
       .modes { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0; }
       .place { font-size: 13px; color: var(--muted); margin-top: 6px; }
+      .show-on { font-size: 13px; color: var(--muted); }
       .results { display: grid; gap: 4px; margin-top: 8px; }
       .results button { text-align: left; }
       .error { color: #dc2626; }
@@ -42,7 +43,7 @@
   </head>
   <body>
     <h1>Finnsikt</h1>
-    <p class="hint">Reisetider (Entur) og månedskostnad for boliger på finn.no, i søkeresultatene og i annonsene.</p>
+    <p class="hint">Reisetider (Entur) og månedskostnad for boliger, og reisetider for stillinger, på finn.no – i søkeresultatene og i annonsene.</p>
 
     <div id="permissions" class="warning" hidden>
       <p>Utvidelsen trenger tilgang til finn.no og api.entur.io.</p>
@@ -50,7 +51,7 @@
     </div>
 
     <h2>Reisemål</h2>
-    <p class="hint">Søk opp en adresse og velg et treff. Reisetid beregnes fra boligen til hvert reisemål. Velg helst en gateadresse – stasjoner og bilfrie plasser gir ofte ingen bilrute.</p>
+    <p class="hint">Søk opp en adresse og velg et treff. Under «Vis på» velger du hvor reisemålet vises: for boliger beregnes reisetiden fra boligen til reisemålet, for jobber fra reisemålet (f.eks. Hjem) til jobben. Velg helst en gateadresse – stasjoner og bilfrie plasser gir ofte ingen bilrute.</p>
     <div id="destinations"></div>
     <button id="add-destination" type="button">+ Legg til reisemål</button>
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Finnsikt",
   "version": "0.1.0",
-  "description": "Reisetider og månedskostnad for boliger på finn.no.",
+  "description": "Reisetider og månedskostnad for boliger, og reisetider for stillinger, på finn.no.",
   "browser_specific_settings": {
     "gecko": {
       "id": "finnsikt@natten.dev",
@@ -23,7 +23,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.finn.no/realestate/*"],
+      "matches": ["https://www.finn.no/realestate/*", "https://www.finn.no/job/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"

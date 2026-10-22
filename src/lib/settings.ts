@@ -4,6 +4,12 @@ export const MODES: Mode[] = ["transit", "car", "foot", "bicycle"];
 
 export const MODE_NAMES: Record<Mode, string> = { transit: "Kollektiv", car: "Bil", foot: "Gange", bicycle: "Sykkel" };
 
+export type Vertical = "realestate" | "job";
+
+export const VERTICALS: Vertical[] = ["realestate", "job"];
+
+export const VERTICAL_NAMES: Record<Vertical, string> = { realestate: "Boliger", job: "Jobber" };
+
 export interface Destination {
   id: string;
   label: string;
@@ -11,10 +17,14 @@ export interface Destination {
   lat?: number;
   lon?: number;
   modes: Mode[];
+  showOn: Vertical[];
 }
 
 export const isRoutable = (destination: Destination): destination is Destination & { lat: number; lon: number } =>
   typeof destination.lat === "number" && typeof destination.lon === "number" && destination.modes.length > 0;
+
+export const destinationsFor = (destinations: Destination[], vertical: Vertical) =>
+  destinations.filter(isRoutable).filter((destination) => destination.showOn.includes(vertical));
 
 export interface LoanSettings {
   equity: number;
@@ -63,7 +73,10 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = "settings";
 
-type StoredSettings = Partial<Settings> & { splitPct?: number };
+type StoredSettings = Partial<Omit<Settings, "destinations">> & {
+  destinations?: (Omit<Destination, "showOn"> & Partial<Pick<Destination, "showOn">>)[];
+  splitPct?: number;
+};
 
 const legacySplits = (splitPct: number | undefined): Split[] =>
   splitPct !== undefined && splitPct < 100
@@ -80,6 +93,10 @@ export function withDefaults(stored: StoredSettings | undefined): Settings {
     ...defaults,
     splits: legacySplits(splitPct),
     ...rest,
+    destinations: (rest.destinations ?? defaults.destinations).map((destination) => ({
+      showOn: ["realestate"],
+      ...destination,
+    })),
     loan: { ...defaults.loan, ...rest.loan },
   };
 }

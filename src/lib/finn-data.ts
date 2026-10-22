@@ -88,15 +88,25 @@ export async function fetchPageData(pageUrl: URL): Promise<unknown> {
   return decodeTurboStream(await response.text());
 }
 
+export async function fetchJobSearchData(pageUrl: URL): Promise<unknown> {
+  const response = await fetch(
+    `${pageUrl.origin}/job/job-search-page/api/unified-search/SEARCH_ID_JOB_FULLTIME${pageUrl.search}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) throw new Error(`finn.no: ${response.status}`);
+  return response.json();
+}
+
 const parseKr = (text: string | undefined): number | undefined => {
   const digits = text?.replace(/\D/g, "");
   return digits ? Number(digits) : undefined;
 };
 
 export function finnkode(card: Element): string | undefined {
-  const link = card.querySelector<HTMLAnchorElement>("a.sf-search-ad-link, a[href*='finnkode=']");
+  const link = card.querySelector<HTMLAnchorElement>("a.sf-search-ad-link, a.job-card-link, a[href*='finnkode=']");
   if (!link) return undefined;
-  return new URL(link.href, location.href).searchParams.get("finnkode") ?? (link.id || undefined);
+  const url = new URL(link.href, location.href);
+  return url.searchParams.get("finnkode") ?? url.pathname.match(/\/(\d+)$/)?.[1] ?? (link.id || undefined);
 }
 
 export function listingFromCard(card: Element, id: string): Listing {
@@ -123,5 +133,22 @@ export function listingFromAdPage(page: ParentNode, id: string): Listing {
     totalPrice: parseKr(text('[data-testid="pricing-total-price"] dd')),
     sharedCost: parseKr(text('[data-testid="pricing-common-monthly-cost"] dd')),
     ownerType: text('[data-testid="info-ownership-type"] dd'),
+  };
+}
+
+export function listingFromJobCard(card: Element, id: string): Listing {
+  return { id, location: card.querySelector(".job-card__pills li span")?.textContent?.trim() || undefined };
+}
+
+export function listingFromJobAdPage(page: ParentNode, id: string): Listing {
+  const map = page.querySelector<HTMLAnchorElement>(`a[href*="/map?adId=${id}"]`);
+  const params = map ? new URL(map.href).searchParams : undefined;
+  const lat = Number(params?.get("lat") ?? NaN);
+  const lon = Number(params?.get("lon") ?? NaN);
+  const place = [...page.querySelectorAll("li")].find((item) => item.firstElementChild?.textContent?.trim() === "Sted:");
+  return {
+    id,
+    location: map?.textContent?.trim() || place?.textContent?.replace(/^\s*Sted:/, "").trim() || undefined,
+    coordinates: Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : undefined,
   };
 }

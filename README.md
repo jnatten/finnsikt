@@ -5,6 +5,8 @@
 - **Travel times** from the listing to your own destinations by public transport, car, walking and bike, using [Entur](https://developer.entur.org/). Hover a time for details, such as the transit lines used.
 - **Monthly cost**: the loan payment plus fellesutgifter, optionally split between several people ("Meg 63 %: 26 699 kr · Partner 37 %: 15 680 kr"), each split shown next to the total.
 
+It also adds the travel times to every job in the job search (`/job/search`) and to each job ad (`/job/ad/<id>`), below the key facts. On job pages the times go the other way: from your places (such as home) to the job. Where the panel is narrow, as in the job search's grid view, only public transport and walking are shown; hover the panel to see every mode.
+
 On a search result card, where "Meg" is over their max and "Partner" is close to it:
 
 <img src="docs/screenshots/search.png" width="641" alt="A finn.no search result card with the Finnsikt panel showing travel times to Jobb and Fornebu, a total of 42 379 kr per month, Meg's 63 % share in red with a warning icon, and Partner's 37 % share in orange">
@@ -72,7 +74,8 @@ Click the toolbar icon to open the settings. If the extension asks for access to
 <img src="docs/screenshots/options.png" width="540" alt="The Finnsikt settings page with two destinations, loan settings, and a split between Meg (63 %, max 25 000 kr) and Partner (37 %, max 16 500 kr)">
 
 - **Reisemål**: search for an address and pick a result, then choose which travel modes to show. Pick a street address where you can: stations and car-free squares often have no car route.
-- **Reisetidspunkt**: public transport times are for arriving by this time on the next weekday. Car, walk and bike times assume no traffic.
+  - **Vis på** chooses where a place is shown. On *Boliger* the time is from the home to the place, and on *Jobber* from the place to the job, so add your home here and tick only *Jobber*. Places added before this setting existed are shown on *Boliger* only.
+- **Reisetidspunkt**: public transport times are for arriving by this time on the next weekday, at the place for homes and at the job for jobs. Car, walk and bike times assume no traffic.
 - **Lån**: egenkapital, interest rate, loan term, annuity or serial loan, termingebyr, and two optional adjustments:
   - add 2.5 % dokumentavgift to the loan for selveier listings
   - subtract the 22 % interest tax deduction
@@ -95,7 +98,9 @@ New-build projects that only list a price range use the lowest price, shown as "
   - On the search page it adds a panel to each `article.sf-search-ad`.
   - On an ad page it adds one panel after the asking price (`[data-testid="pricing-incicative-price"]`).
   - If the data can't be loaded, it reads the prices from the page text and geocodes the address instead.
-- `src/background.ts` asks Entur's journey planner for all destinations and modes of a listing in one GraphQL request, with at most 3 requests running at once. Results are cached in `storage.local` for 14 days.
+- The job search isn't a React Router app, so on `/job/search` the content script fetches the same JSON the page uses itself (`/job/job-search-page/api/unified-search/SEARCH_ID_JOB_FULLTIME?<query>`) and adds a travel-only panel to each `article.job-card-article__list`. Cards missing from that data, such as the paid placement, are geocoded from their location text.
+- On a job ad (`/job/ad/<id>`) the coordinates come from the page's own map link (`a[href*="/map?adId=…"]`), so nothing extra is fetched. The panel goes after the key facts (Søknadsfrist, hjemmekontor, …).
+- `src/background.ts` asks Entur's journey planner for all destinations and modes of a listing in one GraphQL request (for jobs with each place as the start and the job as the end), with at most 3 requests running at once. Results are cached in `storage.local` for 14 days.
 - Settings live in `storage.sync`, and open finn.no tabs update right away when they change.
 
 The extension depends on finn.no's internal data endpoint and CSS class names, so a finn.no redesign may break it.

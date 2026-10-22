@@ -15,9 +15,9 @@ describe("nextWeekdayAt", () => {
 });
 
 describe("formatDuration", () => {
-  it("formats minutes and hours", () => {
-    expect(formatDuration(500)).toBe("8 min");
-    expect(formatDuration(3600)).toBe("1 t");
-    expect(formatDuration(4500)).toBe("1 t 15 min");
+  it("formats minutes and hours, keeping each number with its unit", () => {
+    expect(formatDuration(500)).toBe("8\u00a0min");
+    expect(formatDuration(3600)).toBe("1\u00a0t");
+    expect(formatDuration(4500)).toBe("1\u00a0t 15\u00a0min");
   });
 });

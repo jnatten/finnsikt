@@ -1,18 +1,21 @@
 import type { Coordinates, TravelResult } from "./lib/entur";
 import {
   collectListings,
+  fetchJobSearchData,
   fetchPageData,
   finnkode,
   listingFromAd,
   listingFromAdPage,
   listingFromCard,
+  listingFromJobAdPage,
+  listingFromJobCard,
   type Listing,
 } from "./lib/finn-data";
 import { formatDuration, formatKr, formatPct } from "./lib/format";
 import { monthlyCost, splitCosts, type SplitCost } from "./lib/loan";
 import { requestGeocode, requestOpenOptions, requestTravelTimes, type TravelTimes } from "./lib/messages";
 import {
-  isRoutable,
+  destinationsFor,
   loadSettings,
   MODE_NAMES,
   MODES,
@@ -20,16 +23,52 @@ import {
   splitsAddUp,
   type Mode,
   type Settings,
+  type Vertical,
 } from "./lib/settings";
 
 const MODE_ICONS: Record<Mode, string> = { transit: "🚆", car: "🚗", foot: "🚶", bicycle: "🚲" };
 
+const COMPACT_MODES: Mode[] = ["transit", "foot"];
+
+const EMPTY_TRAVEL: Record<Vertical, string> = {
+  realestate: "Legg til reisemål i innstillingene",
+  job: "Velg reisemål for jobber i innstillingene",
+};
+
 interface Card {
   listing: Listing;
+  vertical: Vertical;
   travel: HTMLElement;
-  cost: HTMLElement;
+  cost?: HTMLElement;
   travelRender: number;
 }
+
+interface SearchPage {
+  vertical: Vertical;
+  cards: string;
+  fetchData: (url: URL) => Promise<unknown>;
+  fromCard: (card: HTMLElement, id: string) => Listing;
+  host: (card: HTMLElement) => HTMLElement;
+  className: string;
+}
+
+const REALESTATE_SEARCH: SearchPage = {
+  vertical: "realestate",
+  cards: "article.sf-search-ad",
+  fetchData: fetchPageData,
+  fromCard: listingFromCard,
+  host: (card) => card.querySelector("h2")?.parentElement ?? card,
+  className: "col-span-2",
+};
+
+const JOB_SEARCH: SearchPage = {
+  vertical: "job",
+  cards: "article.job-card-article__list, article.job-card-article__card",
+  fetchData: fetchJobSearchData,
+  fromCard: listingFromJobCard,
+  host: (card) => card.querySelector<HTMLElement>(".job-card__body") ?? card,
+  className: "",
+};
 
 const cards = new Map<HTMLElement, Card>();
 const enhancing = new WeakSet<HTMLElement>();
@@ -45,10 +84,10 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   return element;
 }
 
-function currentPageData(): Promise<unknown> {
+function currentPageData(fetchData: (url: URL) => Promise<unknown>): Promise<unknown> {
   if (location.href !== pageDataUrl) {
     pageDataUrl = location.href;
-    pageData = fetchPageData(new URL(location.href)).catch((error) => {
+    pageData = fetchData(new URL(location.href)).catch((error) => {
       console.warn("[finnsikt] could not load listing data, falling back to page text", error);
       return undefined;
     });
@@ -65,10 +104,10 @@ async function coordinatesFor(listing: Listing): Promise<Coordinates> {
   return place;
 }
 
-function travelTimesFor(listing: Listing): Promise<TravelTimes> {
+function travelTimesFor(listing: Listing, vertical: Vertical): Promise<TravelTimes> {
   let request = travelRequests.get(listing.id);
   if (!request) {
-    request = coordinatesFor(listing).then(requestTravelTimes);
+    request = coordinatesFor(listing).then((coordinates) => requestTravelTimes(coordinates, vertical));
     travelRequests.set(listing.id, request);
     request.catch(() => travelRequests.delete(listing.id));
   }
@@ -77,6 +116,7 @@ function travelTimesFor(listing: Listing): Promise<TravelTimes> {
 
 function renderCost(card: Card): void {
   const { listing, cost } = card;
+  if (!cost) return;
   cost.replaceChildren();
   if (listing.price === undefined) {
     cost.append(el("span", "ff-muted", "Månedskostnad: –"));
@@ -120,16 +160,21 @@ function travelCell(mode: Mode, result: TravelResult | undefined): HTMLTableCell
 }
 
 function drawTravel(card: Card, times: TravelTimes | undefined, error?: string): void {
-  const destinations = settings.destinations.filter(isRoutable);
+  const destinations = destinationsFor(settings.destinations, card.vertical);
   card.travel.replaceChildren();
   if (destinations.length === 0) {
-    const button = el("button", "ff-link", "Legg til reisemål i innstillingene");
+    const button = el("button", "ff-link", EMPTY_TRAVEL[card.vertical]);
     button.type = "button";
     button.addEventListener("click", () => requestOpenOptions());
     card.travel.append(button);
     return;
   }
   const modes = MODES.filter((mode) => destinations.some((destination) => destination.modes.includes(mode)));
+  const compact = modes.some((mode) => COMPACT_MODES.includes(mode)) ? COMPACT_MODES : modes;
+  const column = (cell: HTMLTableCellElement, mode: Mode) => {
+    if (!compact.includes(mode)) cell.classList.add("ff-extra");
+    return cell;
+  };
   const table = el("table", "ff-table");
   const header = table.createTHead().insertRow();
   header.append(el("td"));
@@ -137,7 +182,7 @@ function drawTravel(card: Card, times: TravelTimes | undefined, error?: string):
     const icon = el("th", undefined, MODE_ICONS[mode]);
     icon.scope = "col";
     icon.title = MODE_NAMES[mode];
-    header.append(icon);
+    header.append(column(icon, mode));
   }
   const body = table.createTBody();
   for (const destination of destinations) {
@@ -147,18 +192,37 @@ function drawTravel(card: Card, times: TravelTimes | undefined, error?: string):
     row.append(name);
     for (const mode of modes) {
       const result = error ? { error } : times?.[destination.id]?.[mode];
-      row.append(destination.modes.includes(mode) ? travelCell(mode, result) : el("td"));
+      row.append(column(destination.modes.includes(mode) ? travelCell(mode, result) : el("td"), mode));
     }
   }
-  card.travel.append(table);
+  const popover = el("div", "ff-popover");
+  popover.popover = "manual";
+  popover.append(table.cloneNode(true));
+  card.travel.append(table, popover);
+}
+
+function showAllModes(travel: HTMLElement): void {
+  const popover = travel.querySelector<HTMLElement>(":scope > .ff-popover");
+  const hidden = travel.querySelector(":scope > .ff-table .ff-extra");
+  if (!popover || !hidden || getComputedStyle(hidden).display !== "none") return;
+  popover.showPopover();
+  const panel = travel.parentElement!.getBoundingClientRect();
+  popover.style.top = `${panel.top}px`;
+  popover.style.left = `${Math.max(8, Math.min(panel.left, innerWidth - popover.offsetWidth - 8))}px`;
+  document.addEventListener("scroll", () => hideAllModes(travel), { capture: true, once: true, passive: true });
+}
+
+function hideAllModes(travel: HTMLElement): void {
+  const popover = travel.querySelector<HTMLElement>(":scope > .ff-popover");
+  if (popover?.matches(":popover-open")) popover.hidePopover();
 }
 
 async function renderTravel(card: Card): Promise<void> {
   const render = ++card.travelRender;
   drawTravel(card, undefined);
-  if (!settings.destinations.some(isRoutable)) return;
+  if (!destinationsFor(settings.destinations, card.vertical).length) return;
   try {
-    const times = await travelTimesFor(card.listing);
+    const times = await travelTimesFor(card.listing, card.vertical);
     if (render === card.travelRender) drawTravel(card, times);
   } catch (error) {
     if (render === card.travelRender) drawTravel(card, undefined, error instanceof Error ? error.message : String(error));
@@ -167,31 +231,40 @@ async function renderTravel(card: Card): Promise<void> {
 
 const panelIn = (scope: ParentNode) => scope.querySelector<HTMLElement>(".ff-panel");
 
-function addPanel(host: HTMLElement, listing: Listing, className: string, insert: (panel: HTMLElement) => void): void {
+function addPanel(
+  host: HTMLElement,
+  listing: Listing,
+  vertical: Vertical,
+  className: string,
+  insert: (panel: HTMLElement) => void,
+): void {
   const panel = el("div", `ff-panel ${className}`);
   panel.dataset.finnkode = listing.id;
-  const card: Card = { listing, travel: el("div", "ff-travel"), cost: el("div", "ff-cost"), travelRender: 0 };
-  panel.append(card.travel, card.cost);
+  const card: Card = { listing, vertical, travel: el("div", "ff-travel"), travelRender: 0 };
+  card.travel.addEventListener("mouseenter", () => showAllModes(card.travel));
+  card.travel.addEventListener("mouseleave", () => hideAllModes(card.travel));
+  if (vertical === "realestate") card.cost = el("div", "ff-cost");
+  panel.append(card.travel, ...(card.cost ? [card.cost] : []));
   insert(panel);
   cards.set(host, card);
   renderCost(card);
   void renderTravel(card);
 }
 
-async function scanSearch(): Promise<void> {
-  const articles = [...document.querySelectorAll<HTMLElement>("article.sf-search-ad")].filter(
+async function scanSearch(page: SearchPage): Promise<void> {
+  const articles = [...document.querySelectorAll<HTMLElement>(page.cards)].filter(
     (article) => !enhancing.has(article) && panelIn(article)?.dataset.finnkode !== finnkode(article),
   );
   if (!articles.length) return;
   for (const article of articles) enhancing.add(article);
-  const data = collectListings(await currentPageData());
+  const data = collectListings(await currentPageData(page.fetchData));
   for (const article of articles) {
     enhancing.delete(article);
     const id = finnkode(article);
     if (!id) continue;
     panelIn(article)?.remove();
-    addPanel(article, data.get(id) ?? listingFromCard(article, id), "col-span-2", (panel) =>
-      (article.querySelector("h2")?.parentElement ?? article).append(panel),
+    addPanel(article, data.get(id) ?? page.fromCard(article, id), page.vertical, page.className, (panel) =>
+      page.host(article).append(panel),
     );
   }
 }
@@ -203,16 +276,31 @@ async function scanAd(): Promise<void> {
     document.querySelector<HTMLElement>('[data-testid="object-title"]');
   if (!id || !anchor || enhancing.has(anchor) || panelIn(document)?.dataset.finnkode === id) return;
   enhancing.add(anchor);
-  const listing = listingFromAd(await currentPageData(), id) ?? listingFromAdPage(document, id);
+  const listing = listingFromAd(await currentPageData(fetchPageData), id) ?? listingFromAdPage(document, id);
   enhancing.delete(anchor);
   panelIn(document)?.remove();
-  addPanel(anchor, listing, "ff-panel-ad", (panel) => anchor.after(panel));
+  addPanel(anchor, listing, "realestate", "ff-panel-ad", (panel) => anchor.after(panel));
+}
+
+function scanJobAd(id: string): void {
+  const anchor =
+    document.querySelector(".key-info-text")?.closest<HTMLElement>("ul") ??
+    document.querySelector<HTMLElement>("main h2");
+  if (!anchor || panelIn(document)?.dataset.finnkode === id) return;
+  panelIn(document)?.remove();
+  addPanel(anchor, listingFromJobAdPage(document, id), "job", "ff-panel-ad ff-panel-job-ad", (panel) =>
+    anchor.after(panel),
+  );
 }
 
 async function scan(): Promise<void> {
   for (const host of cards.keys()) if (!host.isConnected) cards.delete(host);
-  if (location.pathname.endsWith("/search.html")) await scanSearch();
-  else if (location.pathname.endsWith("/ad.html")) await scanAd();
+  const { pathname } = location;
+  const jobAd = pathname.match(/^\/job\/ad\/(\d+)/)?.[1];
+  if (/^\/job\/search\/?$/.test(pathname)) await scanSearch(JOB_SEARCH);
+  else if (jobAd) scanJobAd(jobAd);
+  else if (pathname.endsWith("/search.html")) await scanSearch(REALESTATE_SEARCH);
+  else if (pathname.endsWith("/ad.html")) await scanAd();
 }
 
 let scheduled: number | undefined;

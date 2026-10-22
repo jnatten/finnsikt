@@ -5,6 +5,7 @@ import { decodeTurboStream } from "../src/lib/turbo-stream";
 
 const fixture = readFileSync(new URL("./fixtures/search.data.txt", import.meta.url), "utf8");
 const adFixture = readFileSync(new URL("./fixtures/ad.data.txt", import.meta.url), "utf8");
+const jobSearchFixture = JSON.parse(readFileSync(new URL("./fixtures/job-search.json", import.meta.url), "utf8"));
 
 describe("decodeTurboStream", () => {
   it("rebuilds objects, arrays and sentinels", () => {
@@ -39,6 +40,17 @@ describe("collectListings", () => {
       docs: [{ ad_id: 1, coordinates: { lat: 59.9, lon: 10.8 }, price_range_suggestion: { amount_from: 3_650_000 } }],
     });
     expect(listings.get("1")).toMatchObject({ price: 3_650_000, priceIsFrom: true, sharedCost: undefined });
+  });
+
+  it("finds every job in a finn.no job search response", () => {
+    const listings = collectListings(jobSearchFixture);
+    expect(listings.size).toBe(50);
+    expect(listings.get("478693710")).toMatchObject({
+      id: "478693710",
+      location: "Oslo - Grünerløkka - Sofienberg",
+      coordinates: { lat: 59.92005, lon: 10.75139 },
+      price: undefined,
+    });
   });
 });
 

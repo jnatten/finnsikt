@@ -10,11 +10,16 @@
   font-size: 13px;
   line-height: 1.4;
   cursor: default;
+  container: ff-panel / inline-size;
 }
 
 .ff-panel-ad {
   margin: 0 0 24px;
   font-size: 15px;
+}
+
+.ff-panel-job-ad {
+  margin: 24px 0 0;
 }
 
 .ff-table {
@@ -38,6 +43,30 @@
 .ff-table th[scope="row"] {
   font-weight: 600;
   white-space: normal;
+}
+
+@container ff-panel (max-width: 400px) {
+  .ff-travel > .ff-table .ff-extra {
+    display: none;
+  }
+
+  .ff-travel > .ff-table td {
+    white-space: normal;
+  }
+}
+
+.ff-popover {
+  inset: auto;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(0, 99, 251, 0.07), rgba(0, 99, 251, 0.07)),
+    var(--w-s-color-background, #fff);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  color: inherit;
+  overflow: visible;
 }
 
 .ff-amounts {
